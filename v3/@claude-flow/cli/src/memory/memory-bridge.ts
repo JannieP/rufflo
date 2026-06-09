@@ -1627,6 +1627,12 @@ export async function bridgeRecordFeedback(options: {
   duration?: number;
   patterns?: string[];
   dbPath?: string;
+  // ADR-147 P2: nested-subagent spawn tree capture.
+  // parentAgentId is sourced from Claude Code's `parent_agent_id` OTel span tag
+  // (header `x-claude-code-parent-agent-id`). depth is the chain length from the
+  // root lead session (0 = lead, 1+ = subagent). Both undefined for top-level work.
+  parentAgentId?: string;
+  depth?: number;
 }): Promise<{ success: boolean; controller: string; updated: number } | null> {
   const registry = await getRegistry(options.dbPath);
   if (!registry) return null;
@@ -1643,6 +1649,8 @@ export async function bridgeRecordFeedback(options: {
           await learningSystem.recordFeedback({
             taskId: options.taskId, success: options.success, quality: options.quality,
             agent: options.agent, duration: options.duration, timestamp: Date.now(),
+            // ADR-147 P2: forward spawn-tree lineage if present
+            parentAgentId: options.parentAgentId, depth: options.depth,
           });
           controller = 'learningSystem';
           updated++;

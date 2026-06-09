@@ -1925,6 +1925,19 @@ const postTaskCommand: Command = {
       short: 'a',
       description: 'Agent that executed the task',
       type: 'string'
+    },
+    {
+      // ADR-147 P2: nested-subagent spawn-tree capture
+      name: 'parent-agent-id',
+      description: 'ID of the parent agent (from Claude Code\'s parent_agent_id OTel span tag). Omit for top-level work.',
+      type: 'string',
+      required: false
+    },
+    {
+      name: 'depth',
+      description: 'Chain depth from root lead session (0 = lead, 1+ = subagent). Used by ADR-147 P3 depth-aware guardrail.',
+      type: 'number',
+      required: false
     }
   ],
   examples: [
@@ -1955,6 +1968,9 @@ const postTaskCommand: Command = {
         quality: ctx.flags.quality,
         agent: ctx.flags.agent,
         timestamp: Date.now(),
+        // ADR-147 P2: forward spawn-tree lineage if caller supplied it
+        parentAgentId: ctx.flags.parentAgentId,
+        depth: ctx.flags.depth,
       });
 
       if (ctx.flags.format === 'json') {

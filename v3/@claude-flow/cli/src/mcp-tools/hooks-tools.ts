@@ -1368,6 +1368,9 @@ export const hooksPostTask: MCPTool = {
       quality: { type: 'number', description: 'Quality score (0-1)' },
       task: { type: 'string', description: 'Task description text (used for learning keyword extraction)' },
       storeDecisions: { type: 'boolean', description: 'Also store routing decision in memory DB' },
+      // ADR-147 P2: nested-subagent spawn-tree capture
+      parentAgentId: { type: 'string', description: 'ID of the parent agent (from Claude Code\'s parent_agent_id OTel span tag / x-claude-code-parent-agent-id header). Omit for top-level work.' },
+      depth: { type: 'number', description: 'Chain depth from root lead session (0 = lead, 1+ = subagent). Used by ADR-147 P3 depth-aware guardrail.' },
     },
     required: ['taskId'],
   },
@@ -1381,6 +1384,22 @@ export const hooksPostTask: MCPTool = {
     { const v = validateIdentifier(taskId, 'taskId'); if (!v.valid) return { success: false, error: v.error }; }
     if (agent) { const v = validateIdentifier(agent, 'agent'); if (!v.valid) return { success: false, error: v.error }; }
 
+    // ADR-147 P2: validate spawn-tree lineage if provided
+    const parentAgentId = params.parentAgentId as string | undefined;
+    if (parentAgentId !== undefined) {
+      const v = validateIdentifier(parentAgentId, 'parentAgentId');
+      if (!v.valid) return { success: false, error: v.error };
+    }
+    const depthRaw = params.depth;
+    let depth: number | undefined;
+    if (depthRaw !== undefined && depthRaw !== null) {
+      const n = Number(depthRaw);
+      if (!Number.isInteger(n) || n < 0 || n > 32) {
+        return { success: false, error: 'depth must be a non-negative integer ≤ 32' };
+      }
+      depth = n;
+    }
+
     // Phase 3: Wire recordFeedback through bridge → LearningSystem + ReasoningBank
     let feedbackResult: { success: boolean; controller: string; updated: number } | null = null;
     try {
@@ -1392,6 +1411,9 @@ export const hooksPostTask: MCPTool = {
         agent,
         duration: (params.duration as number) || undefined,
         patterns: (params.patterns as string[]) || undefined,
+        // ADR-147 P2: forward spawn-tree lineage so it lands in feedback + memory
+        parentAgentId,
+        depth,
       });
     } catch {
       // Bridge not available — continue with basic response
