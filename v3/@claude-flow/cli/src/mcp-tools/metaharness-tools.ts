@@ -208,6 +208,33 @@ export const metaharnessTools: MCPTool[] = [
     },
   },
   {
+    name: 'metaharness_similarity',
+    description: 'ADR-152 §3.1 — weighted similarity between two harness fingerprints (genome + score JSON). Returns overall ∈ [0,1] plus per-component breakdown (cosine over 9 numerics, categorical over 4 enums, jaccard over agent_topology). Pure-TS, zero `@metaharness/*` dep. Use to (a) rank candidate templates against a target repo, (b) decide fork-vs-scaffold, (c) feed ADR-151 §3.2 Recommender / §3.3 Drift / §3.5 Plugin Compat.',
+    category: 'metaharness',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        aFile: { type: 'string', description: 'Path to harness A genome+score JSON file (mutually exclusive with aKey)' },
+        bFile: { type: 'string', description: 'Path to harness B genome+score JSON file (mutually exclusive with bKey)' },
+        aKey: { type: 'string', description: 'Memory key for harness A in `metaharness-audit` namespace (mutually exclusive with aFile)' },
+        bKey: { type: 'string', description: 'Memory key for harness B in `metaharness-audit` namespace (mutually exclusive with bFile)' },
+        perDimension: { type: 'boolean', description: 'Include per-dimension contribution breakdown (used by ADR-151 §3.2 Recommender)', default: false },
+        alertBelow: { type: 'number', description: 'Set tool.alert.triggered when overall < N (used by ADR-151 §3.3 Drift Detection)' },
+      },
+    },
+    handler: async (input) => {
+      const args: string[] = [];
+      if (input.aFile) args.push('--a', String(input.aFile));
+      if (input.bFile) args.push('--b', String(input.bFile));
+      if (input.aKey) args.push('--a-key', String(input.aKey));
+      if (input.bKey) args.push('--b-key', String(input.bKey));
+      if (input.perDimension === true) args.push('--per-dimension');
+      if (input.alertBelow !== undefined) args.push('--alert-below', String(input.alertBelow));
+      const r = await runScript('similarity.mjs', args);
+      return { success: !r.degraded, data: r.json, degraded: r.degraded, exitCode: r.exitCode };
+    },
+  },
+  {
     name: 'metaharness_audit_trend',
     description: 'ADR-150 iter 15 — diff two oia-audit records (drift detection). Pulls baseline + current snapshots from the `metaharness-audit` memory namespace and surfaces composite worst-severity delta + per-component status change + introduced/cleared findings.',
     category: 'metaharness',

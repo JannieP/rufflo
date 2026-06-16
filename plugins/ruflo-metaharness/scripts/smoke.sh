@@ -191,6 +191,53 @@ grep -q "execCli(\[\s*'-y'\s*,\s*'metaharness@latest'" "$F" 2>/dev/null || \
 grep -q "cwd: opts" "$F" || miss="$miss no-cwd-passthrough"
 [[ -z "$miss" ]] && ok || bad "$miss"
 
+step "17y. ADR-152 production — _similarity.mjs module + similarity.mjs skill + MCP tool + dispatcher (iter 36)"
+miss=""
+# Production module
+MOD="$ROOT/scripts/_similarity.mjs"
+[[ -f "$MOD" ]] || miss="$miss module-missing"
+node --check "$MOD" 2>/dev/null || miss="$miss module-syntax-error"
+grep -q "export function similarity" "$MOD" 2>/dev/null || miss="$miss no-export-similarity"
+grep -q "export function projectToVec" "$MOD" 2>/dev/null || miss="$miss no-export-projectToVec"
+grep -q "export function cosine" "$MOD" 2>/dev/null || miss="$miss no-export-cosine"
+grep -q "DEFAULT_WEIGHTS" "$MOD" 2>/dev/null || miss="$miss no-default-weights"
+grep -q "cosine: 0.6" "$MOD" 2>/dev/null || miss="$miss weight-cosine-drift"
+grep -q "categorical: 0.25" "$MOD" 2>/dev/null || miss="$miss weight-categorical-drift"
+grep -q "jaccard: 0.15" "$MOD" 2>/dev/null || miss="$miss weight-jaccard-drift"
+# CLI skill
+SKL="$ROOT/scripts/similarity.mjs"
+[[ -x "$SKL" ]] || miss="$miss skill-not-executable"
+node --check "$SKL" 2>/dev/null || miss="$miss skill-syntax-error"
+grep -q "from './_similarity.mjs'" "$SKL" 2>/dev/null || miss="$miss skill-not-using-module"
+grep -q -- "--per-dimension" "$SKL" 2>/dev/null || miss="$miss no-per-dimension-flag"
+grep -q -- "--alert-below" "$SKL" 2>/dev/null || miss="$miss no-alert-below-flag"
+# SKILL.md
+SK="$ROOT/skills/harness-similarity/SKILL.md"
+[[ -f "$SK" ]] || miss="$miss skill-md-missing"
+grep -q "^name: harness-similarity" "$SK" 2>/dev/null || miss="$miss skill-md-name-wrong"
+grep -q "^allowed-tools:" "$SK" 2>/dev/null || miss="$miss skill-md-no-allowed-tools"
+# Dispatcher
+DISP="$ROOT/../../v3/@claude-flow/cli/src/commands/metaharness.ts"
+grep -q "similarity: 'similarity.mjs'" "$DISP" 2>/dev/null || miss="$miss no-dispatcher-entry"
+# MCP tool registered
+MCP="$ROOT/../../v3/@claude-flow/cli/src/mcp-tools/metaharness-tools.ts"
+grep -q "name: 'metaharness_similarity'" "$MCP" 2>/dev/null || miss="$miss no-mcp-tool"
+# Smoke-runtime sanity: production module reproduces spike LEGAL×SUPPORT score
+TMPA=$(mktemp); TMPB=$(mktemp)
+cat > "$TMPA" <<'JSON'
+{"score":{"harnessFit":78,"compileConfidence":92,"taskCoverage":65,"toolSafety":88,"memoryUsefulness":70,"estCostPerRunUsd":0.04,"recommendedMode":"CLI + MCP","archetype":"compliance-harness","template":"vertical:legal"},"genome":{"repo_type":"node_mcp_ci","agent_topology":["contract-analyst","redline-reviewer","risk-rater","compliance-officer"],"risk_score":0.45,"test_confidence":0.7,"publish_readiness":0.6}}
+JSON
+cat > "$TMPB" <<'JSON'
+{"score":{"harnessFit":75,"compileConfidence":90,"taskCoverage":70,"toolSafety":90,"memoryUsefulness":72,"estCostPerRunUsd":0.05,"recommendedMode":"CLI + MCP","archetype":"compliance-harness","template":"vertical:support"},"genome":{"repo_type":"node_mcp_ci","agent_topology":["triager","kb-searcher","responder","risk-rater","compliance-officer"],"risk_score":0.40,"test_confidence":0.75,"publish_readiness":0.65}}
+JSON
+OUT=$(node "$SKL" --a "$TMPA" --b "$TMPB" --format json 2>/dev/null | grep '"overall"' | head -1)
+echo "$OUT" | grep -q "0.8296" || miss="$miss runtime-overall-mismatch:$OUT"
+# Self-similarity check via the production module
+SELF=$(node "$SKL" --a "$TMPA" --b "$TMPA" --format json 2>/dev/null | grep '"overall"' | head -1)
+echo "$SELF" | grep -qE '"overall": 1[,]?$' || miss="$miss runtime-self-not-one:$SELF"
+rm -f "$TMPA" "$TMPB"
+[[ -z "$miss" ]] && ok || bad "$miss"
+
 step "17x. ADR-152 spike — similarity invariants verified at structural level (iter 35)"
 F="$ROOT/scripts/_spike-similarity.mjs"
 miss=""

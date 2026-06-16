@@ -55,6 +55,8 @@ const SUBCOMMANDS: Record<string, string> = {
   'audit-trend': 'audit-trend.mjs',
   // iter 16 — enumerate metaharness-audit records
   'audit-list': 'audit-list.mjs',
+  // iter 36 — ADR-152 §3.1 weighted similarity between two harness fingerprints
+  similarity: 'similarity.mjs',
   mint: 'mint.mjs',
 };
 
@@ -128,6 +130,7 @@ export const metaharnessCommand: Command = {
       output.writeln('  oia-audit     composite weekly audit (oia + threat + mcp) → memory');
       output.writeln('  audit-list    enumerate timestamped audit records');
       output.writeln('  audit-trend   diff two audit records (drift detection)');
+      output.writeln('  similarity    ADR-152 — weighted similarity between two harness fingerprints');
       output.writeln('  mint          scaffold a custom harness (dry-run by default)');
       output.writeln('');
       output.writeln('Each subcommand accepts --format json|table and --help.');
