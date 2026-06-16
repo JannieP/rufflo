@@ -112,6 +112,7 @@
     "@claude-flow/memory": "^3.0.0-alpha.20",
     "@claude-flow/plugin-gastown-bridge": "^0.1.3",
     "@claude-flow/security": "^3.0.0-alpha.10",
+    "@metaharness/kernel": "~0.1.0",
     "@metaharness/router": "~0.3.2",
     "metaharness": "~0.1.11",
     "@ruvector/attention": "^0.1.32",

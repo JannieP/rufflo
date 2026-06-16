@@ -195,9 +195,18 @@ The integration shipped across eight `/loop` iterations on branch
   oia-manifest + threat-model + mcp-scan into one timestamped record;
   persistence to `metaharness-audit` memory namespace; weekly cron
   workflow `.github/workflows/oia-audit-weekly.yml` at Sundays 04:17 UTC.
-- 🔄 `SelfEvolvingRouter` parallel-logging — DEFERRED to a follow-up
-  ADR. Promotion criteria from review-round-1 still stand:
-  quality > 2% AND cost < 1% AND latency < 5%.
+- 🔄/✅ `SelfEvolvingRouter` parallel-logging — ANALYZER LANDED (iter 10):
+  `plugins/ruflo-metaharness/scripts/router-parallel-analyze.mjs` reads
+  paired routing decisions from a JSONL trajectory file and computes
+  the 3-criteria AND-gate from review-round-1. Verified end-to-end with
+  synthetic fixtures (✓ PROMOTABLE / ⚠ NOT promotable paths both work,
+  insufficient-data path exits cleanly at n<30). `@metaharness/kernel`
+  added to `optionalDependencies` of `@claude-flow/cli` AND
+  `ruflo/package.json` so the future Recording side can dynamic-import
+  `SelfEvolvingRouter` without a static dep. The RECORDING side (the
+  parallel-log emitter in `model-router.ts` hot path) is the only
+  remaining piece — its blast radius is high and warrants its own ADR
+  before merging.
 
 ### Phase-1 item #3 — Real seed corpus retraining 🔄 PENDING
 Requires production trajectory data. The pipeline is wired:

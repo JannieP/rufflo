@@ -170,6 +170,26 @@ if (!od.metaharness) { console.error('missing metaharness in optionalDependencie
 if (j.dependencies && j.dependencies.metaharness) { console.error('metaharness leaked into dependencies'); process.exit(1); }
 " 2>/dev/null && ok || bad "ruflo wrapper missing metaharness optionalDep"
 
+step "17d. router-parallel-analyze (ADR-150 SelfEvolvingRouter promotion gate — iter 10)"
+F="$ROOT/scripts/router-parallel-analyze.mjs"
+miss=""
+[[ -x "$F" ]] || miss="$miss not-executable"
+node --check "$F" 2>/dev/null || miss="$miss syntax-error"
+# The 3-criteria AND-gate from ADR-150 review-round-1 must be explicit
+grep -q "qualityImprovementPct" "$F" || miss="$miss no-quality-metric"
+grep -q "usdIncreasePct" "$F" || miss="$miss no-cost-metric"
+grep -q "latencyIncreasePct" "$F" || miss="$miss no-latency-metric"
+# AND-semantics (not OR)
+grep -q "passes.quality && passes.cost && passes.latency" "$F" || miss="$miss no-AND-gate"
+# Thresholds documented in source
+grep -q "qualityThresholdPct: 2" "$F" || miss="$miss no-quality-threshold"
+grep -q "usdThresholdPct: 1" "$F" || miss="$miss no-cost-threshold"
+grep -q "latencyThresholdPct: 5" "$F" || miss="$miss no-latency-threshold"
+# Insufficient-data + strict modes both exit cleanly
+grep -q "n=\${usable.length} < 30\|sufficient: false" "$F" || miss="$miss no-insufficient-guard"
+grep -q "ARGS.strict" "$F" || miss="$miss no-strict-mode"
+[[ -z "$miss" ]] && ok || bad "$miss"
+
 step "17c. oia-audit composite worker (Phase 2 — iter 7)"
 F="$ROOT/scripts/oia-audit.mjs"
 miss=""
