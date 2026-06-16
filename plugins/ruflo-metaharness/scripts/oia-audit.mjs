@@ -25,7 +25,7 @@
 //   2  config error or audit failure
 
 import { spawnSync } from 'node:child_process';
-import { runHarness, runMetaharness, emitDegradedJsonAndExit } from './_harness.mjs';
+import { runHarness, runMetaharness, emitDegradedJsonAndExit, parseMcpScanText } from './_harness.mjs';
 
 const SEVERITY_RANK = { clean: 0, low: 1, medium: 2, high: 3 };
 const NS = process.env.OIA_AUDIT_NAMESPACE || 'metaharness-audit';
@@ -52,12 +52,21 @@ const ARGS = (() => {
 // we need to dispatch to runMetaharness for score+genome, not runHarness.
 function runOne(args, label, engine = 'harness') {
   const r = engine === 'metaharness' ? runMetaharness(args) : runHarness(args);
+  // iter 50 — when label is 'mcp-scan' and the upstream returned text
+  // (json null), parse findings via the shared text parser so audit-trend
+  // can run its introduced/cleared diff on real data. The upstream may
+  // someday emit structured JSON; if so r.json wins and we skip the parse.
+  let json = r.json;
+  if (label === 'mcp-scan' && !json && !r.degraded && r.stdout) {
+    const parsed = parseMcpScanText(r.stdout);
+    json = { findings: parsed.findings, summary: parsed.summary, rawStdout: r.stdout.slice(0, 400) };
+  }
   return {
     label,
     exitCode: r.exitCode,
     degraded: r.degraded,
     reason: r.degraded ? r.reason : null,
-    json: r.json,
+    json,
     durationMs: r.durationMs,
     stderrTail: r.degraded ? (r.stderr || '').slice(-200) : null,
   };

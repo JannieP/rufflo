@@ -107,6 +107,49 @@ export function runHarness(args, opts) {
   return { stdout, stderr, exitCode: r.status ?? 0, json, durationMs, degraded: false };
 }
 
+/**
+ * iter 50 — parse `harness mcp-scan` text output into structured findings.
+ *
+ * Upstream `harness mcp-scan` emits plain text even with --json:
+ *
+ *     harness mcp-scan — <path>
+ *
+ *       [INFO] No MCP security issues found
+ *              Policy is default-deny with safe capability grants and an audit log.
+ *
+ *     Result: INFO (1 finding, 0 high)
+ *
+ * Closes the iter-49-flagged gap where audit-trend.mjs reads
+ * `json.findings` expecting an array, but mcp-scan's r.json was null.
+ * Used by BOTH mcp-scan.mjs (the wrapper) and oia-audit.mjs (composite
+ * audit) so the structured-findings invariant holds across the pipeline.
+ */
+export function parseMcpScanText(stdout) {
+  const findings = [];
+  const lines = (stdout || '').split('\n');
+  let current = null;
+  for (const line of lines) {
+    const m = /^\s*\[([A-Z]+)\]\s+(.+?)\s*$/.exec(line);
+    if (m) {
+      if (current) findings.push(current);
+      current = { severity: m[1].toLowerCase(), message: m[2] };
+    } else if (current && /^\s{6,}\S/.test(line)) {
+      const cont = line.trim();
+      if (cont) current.message += ' ' + cont;
+    } else if (current && line.trim() === '') {
+      findings.push(current);
+      current = null;
+    }
+  }
+  if (current) findings.push(current);
+  const resultMatch = /Result:\s+([A-Z]+)\s+\((\d+)\s+finding/i.exec(stdout);
+  const summary = resultMatch ? {
+    overallSeverity: resultMatch[1].toLowerCase(),
+    totalCount: parseInt(resultMatch[2], 10),
+  } : null;
+  return { findings, summary };
+}
+
 // Convenience emitters for skill scripts — keep the boilerplate out of
 // each skill so they focus on argument parsing + exit-code semantics.
 export function emitDegradedJsonAndExit(reason) {

@@ -16,9 +16,11 @@
 //   1  at least one finding ≥ --fail-on severity
 //   2  config error or scan failure
 
-import { runHarness, emitDegradedJsonAndExit } from './_harness.mjs';
+// iter 50 — parseMcpScanText extracted to _harness.mjs so oia-audit
+// can use the same parser without duplicating logic.
+import { runHarness, emitDegradedJsonAndExit, parseMcpScanText } from './_harness.mjs';
 
-const SEVERITY_RANK = { low: 1, medium: 2, high: 3 };
+const SEVERITY_RANK = { info: 0, low: 1, medium: 2, high: 3, critical: 3 };
 
 const ARGS = (() => {
   const a = { path: '.', format: 'json', failOn: 'high' };
@@ -45,9 +47,19 @@ function main() {
     if (r.stderr) console.error(r.stderr.slice(0, 400));
     process.exit(2);
   }
-  // The JSON output shape from `harness mcp-scan` includes findings[].
-  const payload = r.json ?? { rawStdout: r.stdout.slice(0, 400) };
-  const findings = Array.isArray(payload?.findings) ? payload.findings : [];
+  // The JSON output shape from `harness mcp-scan` historically didn't
+  // include structured findings — it emits text even with --json. Parse
+  // the text into findings (iter 50) so audit-trend's introduced/cleared
+  // diff actually works. If a future upstream version DOES emit
+  // findings[], the parsed-text findings are overridden.
+  const parsed = parseMcpScanText(r.stdout);
+  const payload = {
+    ...(r.json ?? {}),
+    findings: Array.isArray(r.json?.findings) ? r.json.findings : parsed.findings,
+    summary: r.json?.summary ?? parsed.summary,
+    rawStdout: r.stdout.slice(0, 400),
+  };
+  const findings = payload.findings;
   const threshold = SEVERITY_RANK[ARGS.failOn];
   const offending = findings.filter((f) => SEVERITY_RANK[String(f.severity || 'low').toLowerCase()] >= threshold);
 

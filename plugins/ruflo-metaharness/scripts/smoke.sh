@@ -191,6 +191,26 @@ grep -q "execCli(\[\s*'-y'\s*,\s*'metaharness@latest'" "$F" 2>/dev/null || \
 grep -q "cwd: opts" "$F" || miss="$miss no-cwd-passthrough"
 [[ -z "$miss" ]] && ok || bad "$miss"
 
+step "17z13. mcp-scan findings parsed from text → audit-trend diff works (iter 50)"
+miss=""
+HARNESS="$ROOT/scripts/_harness.mjs"
+# Shared parser exported
+grep -q "export function parseMcpScanText" "$HARNESS" 2>/dev/null || miss="$miss no-shared-parser"
+# mcp-scan.mjs uses it
+SCAN="$ROOT/scripts/mcp-scan.mjs"
+grep -q "parseMcpScanText" "$SCAN" 2>/dev/null || miss="$miss scan-not-importing"
+# oia-audit.mjs uses it for the mcp-scan label
+OIA="$ROOT/scripts/oia-audit.mjs"
+grep -q "parseMcpScanText" "$OIA" 2>/dev/null || miss="$miss oia-not-importing"
+grep -q "label === 'mcp-scan'" "$OIA" 2>/dev/null || miss="$miss no-label-dispatch"
+# Runtime: mcp-scan produces an array
+OUT=$(node "$SCAN" --path . --format json 2>/dev/null)
+echo "$OUT" | grep -q '"findings": \[' || miss="$miss runtime-no-findings-array"
+echo "$OUT" | grep -q '"severity":' || miss="$miss runtime-no-severity-field"
+# Runtime: roundtrip passes 25/25 (was 24/24 with mcp-scan SKIP)
+node "$ROOT/scripts/test-pipeline-roundtrip.mjs" 2>&1 | grep -q "25 passed, 0 failed" || miss="$miss roundtrip-not-25"
+[[ -z "$miss" ]] && ok || bad "$miss"
+
 step "17z12. roundtrip covers non-similarity schemas + flags mcp-scan gap (iter 49)"
 miss=""
 F="$ROOT/scripts/test-pipeline-roundtrip.mjs"
