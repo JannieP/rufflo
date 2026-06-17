@@ -1448,7 +1448,11 @@ grep -q "ruflo metaharness drift-from-history" "$CMD" 2>/dev/null || miss="$miss
 # Phase 4 includes the new positive-case assertions
 T="$ROOT/scripts/test-mcp-tools.mjs"
 grep -q "drift_from_history positive: data is an object" "$T" 2>/dev/null || miss="$miss no-phase4-positive"
-grep -q "metaharness_drift_from_history.*90_000\|90_000.*drift_from_history\|drift_from_history.*=== 'metaharness_drift_from_history'" "$T" 2>/dev/null || miss="$miss no-extended-timeout"
+# iter 128 — refactored from literal `=== 'metaharness_drift_from_history' ? 90_000`
+# ternary to an `isChainTool` boolean covering both drift_from_history AND
+# oia_audit. Accept either form so the smoke survives both shapes.
+grep -qE "metaharness_drift_from_history.*90_000|90_000.*drift_from_history|drift_from_history.*=== 'metaharness_drift_from_history'|isChainTool.*90_000|name === 'metaharness_drift_from_history'" "$T" 2>/dev/null \
+  || miss="$miss no-extended-timeout"
 [[ -z "$miss" ]] && ok || bad "$miss"
 
 step "17z16. drift-from-history one-command primitive (iter 53)"
