@@ -1,6 +1,6 @@
 {
   "name": "@claude-flow/cli",
-  "version": "3.12.0",
+  "version": "3.12.1",
   "type": "module",
   "description": "Ruflo CLI - Enterprise AI agent orchestration with 60+ specialized agents, swarm coordination, MCP server, self-learning hooks, and vector memory for Claude Code",
   "main": "dist/src/index.js",
@@ -78,6 +78,7 @@
     "bin",
     "scripts",
     ".claude",
+    "plugins",
     "README.md"
   ],
   "scripts": {
@@ -86,7 +87,7 @@
     "test:plugin-store": "npx tsx src/plugins/tests/standalone-test.ts",
     "test:pattern-store": "npx tsx src/transfer/store/tests/standalone-test.ts",
     "postinstall": "node ./scripts/postinstall.cjs",
-    "prepublishOnly": "cp ../../../README.md ./README.md",
+    "prepublishOnly": "cp ../../../README.md ./README.md && rm -rf plugins && mkdir -p plugins && cp -r ../../../plugins/ruflo-metaharness plugins/",
     "release": "npm version prerelease --preid=alpha && npm run publish:all",
     "publish:all": "./scripts/publish.sh"
   },
