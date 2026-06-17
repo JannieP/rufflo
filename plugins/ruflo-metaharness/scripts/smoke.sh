@@ -191,6 +191,27 @@ grep -q "execCli(\[\s*'-y'\s*,\s*'metaharness@latest'" "$F" 2>/dev/null || \
 grep -q "cwd: opts" "$F" || miss="$miss no-cwd-passthrough"
 [[ -z "$miss" ]] && ok || bad "$miss"
 
+step "17z49. parseMcpScanText perf bench (iter 86)"
+miss=""
+F="$ROOT/scripts/bench-parse-mcp-scan.mjs"
+[[ -x "$F" ]] || miss="$miss not-executable"
+node --check "$F" 2>/dev/null || miss="$miss syntax-error"
+# Three categories present (anti-shrink)
+for cat in EMPTY TYPICAL RICH; do
+  grep -q "const ${cat} = " "$F" 2>/dev/null || miss="$miss missing-fixture-${cat}"
+done
+# Imports from production module
+grep -q "from './_harness.mjs'" "$F" 2>/dev/null || miss="$miss not-using-production-parser"
+# Gate flag exposed
+grep -q -- "--max-mean-us" "$F" 2>/dev/null || miss="$miss no-gate-flag"
+# Runtime: bench produces sub-5μs results across all categories
+node "$F" --iters 10000 --max-mean-us 5 >/dev/null 2>&1 || miss="$miss runtime-fails-or-perf-blew-5us"
+# Runtime: gate trips on absurd ceiling
+if node "$F" --iters 10000 --max-mean-us 0.0001 >/dev/null 2>&1; then
+  miss="$miss gate-failed-to-trip"
+fi
+[[ -z "$miss" ]] && ok || bad "$miss"
+
 step "17z48. MCP-layer alertOnNewSeverity Phase 4 positive case (iter 85)"
 miss=""
 T="$ROOT/scripts/test-mcp-tools.mjs"
