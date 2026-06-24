@@ -1,4 +1,4 @@
-# Claude-Flow Deep Regression Test Environment
+# Rufflo Deep Regression Test Environment
 # Comprehensive testing for all capabilities
 
 FROM node:20-bookworm
@@ -41,28 +41,28 @@ COPY v3/ ./v3/
 RUN npm install --legacy-peer-deps
 
 # Build v3 packages
-WORKDIR /app/v3/@claude-flow/shared
+WORKDIR /app/v3/@rufflo/shared
 RUN npm install --legacy-peer-deps && npm run build || true
 
-WORKDIR /app/v3/@claude-flow/hooks
+WORKDIR /app/v3/@rufflo/hooks
 RUN npm install --legacy-peer-deps && npm run build || true
 
-WORKDIR /app/v3/@claude-flow/plugins
+WORKDIR /app/v3/@rufflo/plugins
 RUN npm install --legacy-peer-deps && npm run build || true
 
-WORKDIR /app/v3/@claude-flow/security
+WORKDIR /app/v3/@rufflo/security
 RUN npm install --legacy-peer-deps && npm run build || true
 
-WORKDIR /app/v3/@claude-flow/swarm
+WORKDIR /app/v3/@rufflo/swarm
 RUN npm install --legacy-peer-deps && npm run build || true
 
-WORKDIR /app/v3/@claude-flow/cli
+WORKDIR /app/v3/@rufflo/cli
 RUN npm install --legacy-peer-deps && npm run build || true
 
-WORKDIR /app/v3/@claude-flow/memory
+WORKDIR /app/v3/@rufflo/memory
 RUN npm install --legacy-peer-deps && npm run build || true
 
-WORKDIR /app/v3/@claude-flow/mcp
+WORKDIR /app/v3/@rufflo/mcp
 RUN npm install --legacy-peer-deps && npm run build || true
 
 # Return to app root

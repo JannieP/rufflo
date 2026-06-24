@@ -47,10 +47,9 @@ describe('#2206 — mcp-generator server key', () => {
     expect(config.mcpServers).toHaveProperty('rufflo');
   });
 
-  it('does NOT register the server under the bare rufflo key', () => {
-    const config = generateMCPConfig(makeMCPOptions()) as { mcpServers: Record<string, unknown> };
-    expect(config.mcpServers).not.toHaveProperty('rufflo');
-  });
+  // (Post-rename: the historical #2206 distinction between the umbrella key and
+  // the bare wrapper key collapsed — both are now the single canonical `rufflo`.
+  // The "registers under the rufflo key" test above is the live invariant.)
 
   it('still invokes rufflo@latest mcp start as the command args', () => {
     const config = generateMCPConfig(makeMCPOptions()) as { mcpServers: Record<string, unknown> };
@@ -63,11 +62,10 @@ describe('#2206 — mcp-generator server key', () => {
   it('generateMCPCommands uses rufflo as the registration name', () => {
     const cmds = generateMCPCommands(makeMCPOptions());
     expect(cmds.length).toBeGreaterThan(0);
-    // Every command that adds the main server must use 'rufflo', not 'rufflo'
+    // The main server registers under the canonical `rufflo` name.
     const mainCmd = cmds.find(c => c.includes('rufflo@latest'));
     expect(mainCmd).toBeDefined();
-    expect(mainCmd).toMatch(/claude mcp add rufflo/);
-    expect(mainCmd).not.toMatch(/claude mcp add rufflo\b/);
+    expect(mainCmd).toMatch(/claude mcp add rufflo\b/);
   });
 });
 
