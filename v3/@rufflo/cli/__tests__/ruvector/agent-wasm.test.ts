@@ -130,12 +130,12 @@ import {
 
 // ── Tests ────────────────────────────────────────────────────
 
-// Skip in CI — the WASM init crashes during module load even with the
-// vi.mock above, because the mock replaces *some* of the loading path but
-// the real @ruvector/rvagent-wasm import still happens. Local runs where
-// the WASM binary is built work fine; CI without postinstall doesn't.
-// See ruvllm-wasm.test.ts for the same pattern.
-const __SKIP_WASM_TESTS = process.env.CI === 'true';
+// Gate on ACTUAL WASM availability rather than a CI-env guess (see
+// ruvllm-wasm.test.ts for the rationale): run wherever @ruvector/rvagent-wasm
+// loads, skip-with-reason wherever it doesn't — CI without prebuilt natives,
+// edge/Pi, or this sandbox. isAgentWasmAvailable() is imported above.
+const __WASM_AVAILABLE = await isAgentWasmAvailable().catch(() => false);
+const __SKIP_WASM_TESTS = !__WASM_AVAILABLE;
 
 describe.skipIf(__SKIP_WASM_TESTS)('agent-wasm integration', () => {
   describe('detection and init', () => {

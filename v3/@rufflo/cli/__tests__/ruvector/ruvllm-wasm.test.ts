@@ -219,8 +219,15 @@ vi.mock('node:module', () => ({
 // initial module evaluation — once vi.mock can replace the package itself
 // cleanly, this skip can come off.
 //
-// Skip in CI; run locally where WASM is built.
-const __SKIP_WASM_TESTS = process.env.CI === 'true';
+// Gate on ACTUAL WASM availability, not a CI-env guess: run wherever the
+// native module loads (CI or local) and skip-with-reason wherever it doesn't
+// (CI without prebuilt natives, edge/Pi, this sandbox). Probed once via the
+// real module — the vi.mock above intercepts loader paths but not the
+// package's own availability check, so this reflects the genuine runtime state.
+const __WASM_AVAILABLE = await import('../../src/ruvector/ruvllm-wasm.js')
+  .then((m) => m.isRuvllmWasmAvailable())
+  .catch(() => false);
+const __SKIP_WASM_TESTS = !__WASM_AVAILABLE;
 
 describe.skipIf(__SKIP_WASM_TESTS)('ruvllm-wasm integration', () => {
   beforeEach(() => {
