@@ -22,6 +22,7 @@ import { OutputFormatter, output } from './output.js';
 import { commands, commandsByCategory, getCommandsByCategory, commandRegistry, getCommand, getCommandAsync, getCommandNames, getLazyCommandNames, hasCommand } from './commands/index.js';
 import { suggestCommand } from './suggest.js';
 import { runStartupUpdateCheck } from './update/index.js';
+import { migrateStorageDir } from './storage-migration.js';
 
 // Read version from package.json at runtime
 function getPackageVersion(): string {
@@ -83,6 +84,12 @@ export class CLI {
    */
   async run(args: string[] = process.argv.slice(2)): Promise<void> {
     try {
+      // One-time storage migration: rename a legacy `.claude-flow/` data dir
+      // to `.rufflo/` so users upgrading across the clean-break rename keep
+      // their agent registry, swarm state, task store, and sessions. Cheap
+      // no-op when neither dir exists; never throws into the CLI.
+      migrateStorageDir(process.cwd());
+
       // #1791.2 — If the user invoked a lazy command (e.g. `hive-mind task`),
       // pre-load it BEFORE parsing so the parser can build scoped flag
       // aliases for its subcommands. Without this, short flags defined on

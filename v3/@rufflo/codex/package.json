@@ -76,7 +76,7 @@
     "node": ">=18"
   },
   "peerDependencies": {
-    "@rufflo/cli": "^3.0.0-alpha.1"
+    "@rufflo/cli": "workspace:*"
   },
   "peerDependenciesMeta": {
     "@rufflo/cli": {

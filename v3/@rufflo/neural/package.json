@@ -121,7 +121,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@rufflo/memory": "^3.0.0-alpha.16",
+    "@rufflo/memory": "workspace:*",
     "@ruvector/sona": "0.1.5"
   },
   "optionalDependencies": {

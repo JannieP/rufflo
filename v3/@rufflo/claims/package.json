@@ -67,7 +67,7 @@
     "vitest": "^4.0.16"
   },
   "peerDependencies": {
-    "@rufflo/shared": "^3.0.0-alpha.1"
+    "@rufflo/shared": "workspace:*"
   },
   "peerDependenciesMeta": {
     "@rufflo/shared": {

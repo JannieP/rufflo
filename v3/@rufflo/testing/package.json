@@ -42,15 +42,15 @@
     "fixtures"
   ],
   "peerDependencies": {
-    "@rufflo/memory": "^3.0.0-alpha.2",
-    "@rufflo/shared": "^3.0.0-alpha.1",
-    "@rufflo/swarm": "^3.0.0-alpha.1",
+    "@rufflo/memory": "workspace:*",
+    "@rufflo/shared": "workspace:*",
+    "@rufflo/swarm": "workspace:*",
     "vitest": ">=4.0.16"
   },
   "devDependencies": {
-    "@rufflo/memory": "^3.0.0-alpha.2",
-    "@rufflo/shared": "^3.0.0-alpha.1",
-    "@rufflo/swarm": "^3.0.0-alpha.1",
+    "@rufflo/memory": "workspace:*",
+    "@rufflo/shared": "workspace:*",
+    "@rufflo/swarm": "workspace:*",
     "typescript": "^5.3.0",
     "vitest": "^4.0.16"
   },

@@ -14,7 +14,7 @@
     "release": "semantic-release"
   },
   "dependencies": {
-    "@rufflo/shared": "^3.0.0-alpha.1"
+    "@rufflo/shared": "workspace:*"
   },
   "devDependencies": {
     "semantic-release": "^25.0.2",

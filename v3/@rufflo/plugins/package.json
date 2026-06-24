@@ -46,8 +46,8 @@
     "events": "^3.3.0"
   },
   "peerDependencies": {
-    "@rufflo/hooks": "^3.0.0-alpha.2",
-    "@rufflo/memory": "^3.0.0-alpha.2",
+    "@rufflo/hooks": "workspace:*",
+    "@rufflo/memory": "workspace:*",
     "@ruvector/learning-wasm": "^0.1.0",
     "@ruvector/wasm": "^0.1.0"
   },
