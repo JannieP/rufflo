@@ -128,7 +128,8 @@
     "@ruvector/tiny-dancer": "^0.1.22",
     "agentdb": "^3.0.0-alpha.17",
     "agentic-flow": "^3.0.0-alpha.1",
-    "ruvector": "^0.2.27"
+    "ruvector": "^0.2.27",
+    "sql.js": "^1.13.0"
   },
   "publishConfig": {
     "access": "public",
