@@ -2491,7 +2491,11 @@ export async function searchEntries(options: {
 
   try {
     if (!fs.existsSync(dbPath)) {
-      return { success: false, results: [], searchTime: 0, error: 'Database not found' };
+      // A fresh project has no store yet — that's zero results, NOT an error.
+      // Only surface an error when the caller explicitly pointed --path at a
+      // missing file (likely a typo worth flagging).
+      if (customPath) return { success: false, results: [], searchTime: 0, error: `Database not found: ${dbPath}` };
+      return { success: true, results: [], searchTime: 0 };
     }
 
     // Ensure schema has all required columns (migration for older DBs)
@@ -2711,7 +2715,10 @@ export async function listEntries(options: {
 
   try {
     if (!fs.existsSync(dbPath)) {
-      return { success: false, entries: [], total: 0, error: 'Database not found' };
+      // A fresh project has no store yet — that's an empty list, NOT an error.
+      // Only error when the caller explicitly pointed --path at a missing file.
+      if (customPath) return { success: false, entries: [], total: 0, error: `Database not found: ${dbPath}` };
+      return { success: true, entries: [], total: 0 };
     }
 
     // Ensure schema has all required columns (migration for older DBs)
