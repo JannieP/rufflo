@@ -10,6 +10,9 @@
 // 8,789-entry store with custom namespaces.
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { memoryTools } from '../src/mcp-tools/memory-tools.js';
 
 const tool = memoryTools.find((t) => t.name === 'memory_search_unified');
@@ -25,8 +28,36 @@ function restoreEnv(v: string | undefined) {
 
 describe('memory_search_unified namespace fan-out (#2246)', () => {
   let savedEnv: string | undefined;
-  beforeEach(() => { savedEnv = snapshotEnv(); });
-  afterEach(() => { restoreEnv(savedEnv); });
+  // Isolate the memory store to a fresh temp dir per-test. The "no params"
+  // case dynamically enumerates namespaces via listEntries({ limit: 100000 });
+  // when the shared .swarm/memory.db has been populated by sibling suites,
+  // that enumeration easily exceeds the 5s test timeout. A fresh empty store
+  // makes the call instant.
+  //
+  // CLAUDE_FLOW_MEMORY_PATH alone is not enough: the AgentDB bridge is
+  // module-cached on first import and won't re-bind to the new path. Setting
+  // CLAUDE_FLOW_DISABLE_BRIDGE=1 forces the per-call sql.js fallback path,
+  // which DOES re-resolve via getMemoryRoot() (and which now reads a missing
+  // store as empty rather than erroring — see commit 007f5e974).
+  let memDir: string;
+  let prevMemPath: string | undefined;
+  let prevDisableBridge: string | undefined;
+  beforeEach(() => {
+    savedEnv = snapshotEnv();
+    memDir = mkdtempSync(path.join(tmpdir(), 'rufflo-2246-'));
+    prevMemPath = process.env.CLAUDE_FLOW_MEMORY_PATH;
+    prevDisableBridge = process.env.CLAUDE_FLOW_DISABLE_BRIDGE;
+    process.env.CLAUDE_FLOW_MEMORY_PATH = memDir;
+    process.env.CLAUDE_FLOW_DISABLE_BRIDGE = '1';
+  });
+  afterEach(() => {
+    restoreEnv(savedEnv);
+    if (prevMemPath === undefined) delete process.env.CLAUDE_FLOW_MEMORY_PATH;
+    else process.env.CLAUDE_FLOW_MEMORY_PATH = prevMemPath;
+    if (prevDisableBridge === undefined) delete process.env.CLAUDE_FLOW_DISABLE_BRIDGE;
+    else process.env.CLAUDE_FLOW_DISABLE_BRIDGE = prevDisableBridge;
+    try { rmSync(memDir, { recursive: true, force: true }); } catch { /* ignore */ }
+  });
 
   it('exists and accepts the new `namespaces` array parameter', () => {
     expect(tool).toBeDefined();
@@ -48,7 +79,7 @@ describe('memory_search_unified namespace fan-out (#2246)', () => {
     // so callers can audit which list was used.
     expect(r.namespaceSource).toBeDefined();
     expect(['dynamic', 'legacy-fallback', 'env']).toContain(r.namespaceSource);
-  });
+  }, 30_000); // cold-start ONNX model load (~3s) + 6-namespace fan-out exceeds the 5s default
 
   it('with explicit single `namespace`, reports namespaceSource=param-single', async () => {
     const r = await tool!.handler({ query: 'test', namespace: 'patterns' }) as {
