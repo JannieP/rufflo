@@ -54,14 +54,18 @@ function isRuvectorCoreResolvable(): boolean {
  */
 let _memoryRootCache: string | undefined;
 export function getMemoryRoot(): string {
-  if (_memoryRootCache !== undefined) return _memoryRootCache;
-
-  // 1. Env var
+  // 1. Env var — checked FIRST and honored DYNAMICALLY (never cached). An
+  //    explicit CLAUDE_FLOW_MEMORY_PATH should take effect immediately whenever
+  //    it's set or changed (it's a cheap read + resolve), so a process — or a
+  //    test isolating its store to a temp dir — always gets the path it asked
+  //    for, regardless of any earlier cached config/default resolution.
   const envPath = process.env.CLAUDE_FLOW_MEMORY_PATH;
   if (envPath && envPath.trim().length > 0) {
-    _memoryRootCache = path.resolve(envPath);
-    return _memoryRootCache;
+    return path.resolve(envPath);
   }
+
+  // Cached config/default resolution below (the expensive file probes).
+  if (_memoryRootCache !== undefined) return _memoryRootCache;
 
   // 2. Config file (rufflo.config.json)
   const configCandidates = [
@@ -2491,10 +2495,11 @@ export async function searchEntries(options: {
 
   try {
     if (!fs.existsSync(dbPath)) {
-      // A fresh project has no store yet — that's zero results, NOT an error.
-      // Only surface an error when the caller explicitly pointed --path at a
-      // missing file (likely a typo worth flagging).
-      if (customPath) return { success: false, results: [], searchTime: 0, error: `Database not found: ${dbPath}` };
+      // A missing store is an EMPTY store, not an error — `rufflo memory
+      // search` on a fresh project (or before `memory init`) returns zero
+      // results, not "Database not found". (The CLI always resolves and passes
+      // a concrete dbPath, so we can't distinguish a typo'd --path here; empty
+      // is the safe, correct default either way.)
       return { success: true, results: [], searchTime: 0 };
     }
 
@@ -2715,9 +2720,8 @@ export async function listEntries(options: {
 
   try {
     if (!fs.existsSync(dbPath)) {
-      // A fresh project has no store yet — that's an empty list, NOT an error.
-      // Only error when the caller explicitly pointed --path at a missing file.
-      if (customPath) return { success: false, entries: [], total: 0, error: `Database not found: ${dbPath}` };
+      // A missing store is an EMPTY store, not an error — `rufflo memory list`
+      // on a fresh project returns an empty list, not "Database not found".
       return { success: true, entries: [], total: 0 };
     }
 

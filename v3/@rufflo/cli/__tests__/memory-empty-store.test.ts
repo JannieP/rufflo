@@ -40,10 +40,12 @@ describe('memory on a fresh project (no db)', () => {
     expect(r.results.length).toBe(0);
   });
 
-  it('an explicit missing --path still errors (typo guard)', async () => {
+  it('a missing db at an explicit --path is also empty, not an error', async () => {
+    // The CLI always resolves+passes a concrete dbPath, so a missing store must
+    // read as empty regardless of how the path was supplied.
     const m = await import('../src/memory/memory-initializer.js');
     const r: any = await m.listEntries({ limit: 20, offset: 0, dbPath: join(dir, 'nope', 'missing.db') });
-    expect(r.success).toBe(false);
-    expect(r.error).toMatch(/not found/i);
+    expect(r.success).toBe(true);
+    expect(r.entries.length).toBe(0);
   });
 });
